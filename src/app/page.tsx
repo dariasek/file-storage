@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { UploadBtn } from "./upload-btn";
+import { FileCard } from "./file-card";
 
 
 export default function Home() {
@@ -26,13 +27,13 @@ export default function Home() {
           <Button>Tap to sign out</Button>
         </SignOutButton>
       </SignedIn>
+      <div className="grid grid-cols-4 gap-4 mt-8">
       {
         files?.map(file => {
-          return <div key={file._id}>
-            {file.name}
-          </div>
+          return <FileCard key={file._id} file={file} />
         })
       }
+      </div>
     </main>
   );
 }
