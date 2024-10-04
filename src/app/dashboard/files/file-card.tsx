@@ -30,6 +30,7 @@ import { useMutation } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
+import { Protect } from "@clerk/nextjs"
 
 
 function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: boolean}) {
@@ -95,14 +96,18 @@ function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: b
                     <StarIcon className={`w-4 h-4 ${isFavorite ? 'text-yellow-400' : ''}`} />
                     Favorite
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                 className="flex gap-1 items-center text-red-600 cursor-pointer"
-                 onClick={() => {setDeleteConfirmOpen(true)}}
+                <Protect
+                    role="org:admin"
                 >
-                    <TrashIcon className="w-4 h-4" />
-                    Delete
-                </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        className="flex gap-1 items-center text-red-600 cursor-pointer"
+                        onClick={() => { setDeleteConfirmOpen(true) }}
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                        Delete
+                    </DropdownMenuItem>
+                </Protect>
             </DropdownMenuContent>
         </DropdownMenu>
     </>

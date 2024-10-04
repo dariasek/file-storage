@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, MutationCtx, QueryCtx } from "./_generated/server";
+import { roles } from "./schema";
 
 
 export async function getUser(ctx: QueryCtx | MutationCtx, tokenIdentifier: string) {
@@ -24,7 +25,8 @@ export const createUser = internalMutation({
 export const addOrgIdToUser = internalMutation({
     args: {
         tokenIdentifier: v.string(),
-        orgId: v.string()
+        orgId: v.string(),
+        role: roles
     },
     async handler(ctx, args) {
         const user = await getUser(ctx, args.tokenIdentifier)
@@ -34,7 +36,32 @@ export const addOrgIdToUser = internalMutation({
         }
 
         await ctx.db.patch(user._id, {
-            orgIds: [...user.orgIds, args.orgId]
+            orgIds: [...user.orgIds, { orgId: args.orgId, role: args.role}]
+        })
+    },
+})
+
+export const updateUserRoleInOrg = internalMutation({
+    args: {
+        tokenIdentifier: v.string(),
+        orgId: v.string(),
+        role: roles
+    },
+    async handler(ctx, args) {
+        const user = await getUser(ctx, args.tokenIdentifier)
+
+        if (!user) {
+            throw new ConvexError("Expect user to be defined")
+        }
+
+        const orgInfo = user.orgIds.find(org => org.orgId === args.orgId)
+
+        if (!orgInfo) return
+
+        orgInfo.role = args.role
+
+        await ctx.db.patch(user._id, {
+            orgIds: user.orgIds
         })
     },
 })
