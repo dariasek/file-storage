@@ -5,12 +5,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { Doc } from "../../convex/_generated/dataModel"
+import { Doc } from "../../../../convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -23,18 +24,20 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@/components/ui/alert-dialog"
-import { GanttChartIcon, ImageIcon, MoreVertical, TextIcon, TrashIcon } from "lucide-react"
+import { GanttChartIcon, ImageIcon, MoreVertical, StarIcon, TextIcon, TrashIcon } from "lucide-react"
 import { ReactNode, useState } from "react"
 import { useMutation } from "convex/react"
-import { api } from "../../convex/_generated/api"
+import { api } from "../../../../convex/_generated/api"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 
 
-function FileCardActions({file}: {file: Doc<'files'>}) {
+function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: boolean}) {
     const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
     const deleteFile = useMutation(api.files.deleteFile)
+    const toggleFavorites = useMutation(api.files.toggleFavorite)
     const { toast } = useToast()
+
 
     return <>
         <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -75,6 +78,25 @@ function FileCardActions({file}: {file: Doc<'files'>}) {
             <DropdownMenuTrigger><MoreVertical /></DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem
+                 className="flex gap-1 items-center cursor-pointer"
+                 onClick={async () => {
+                    try {
+                        await toggleFavorites({
+                            fileId: file._id
+                        })
+                    } catch (e) {
+                        toast({
+                            title: 'Something went wrong',
+                            variant: 'destructive',
+                        })
+                    }
+                 }}
+                >
+                    <StarIcon className={`w-4 h-4 ${isFavorite ? 'text-yellow-400' : ''}`} />
+                    Favorite
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                  className="flex gap-1 items-center text-red-600 cursor-pointer"
                  onClick={() => {setDeleteConfirmOpen(true)}}
                 >
@@ -86,9 +108,9 @@ function FileCardActions({file}: {file: Doc<'files'>}) {
     </>
 }
 
-type FileWithUrl = Doc<"files"> & { url: string }
+type FileWithUrl = Doc<"files"> & { url: string | null }
 
-export function FileCard({ file }: { file: FileWithUrl }) {
+export function FileCard({ file, isFavorite }: { file: FileWithUrl, isFavorite?: boolean }) {
     const typeIcons = {
         'image': <ImageIcon />,
         'csv': <GanttChartIcon />,
@@ -102,7 +124,7 @@ export function FileCard({ file }: { file: FileWithUrl }) {
                 {file.name}
             </CardTitle>
             <div className="absolute top-2 right-1">
-                <FileCardActions file={file} />
+                <FileCardActions file={file} isFavorite={isFavorite} />
             </div>
         </CardHeader>
         <CardContent className="h-[200px] flex justify-center">
@@ -116,7 +138,7 @@ export function FileCard({ file }: { file: FileWithUrl }) {
         <CardFooter className="flex justify-center">
             {/* TODO: Add real download */}
             <Button onClick={() => {
-                window.open(file.url, '_blank')
+                return file.url && window.open(file.url, '_blank')
             }}>Download</Button>
         </CardFooter>
     </Card>

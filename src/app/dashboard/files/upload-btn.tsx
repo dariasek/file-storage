@@ -1,7 +1,7 @@
 "use client"
 import { useOrganization, useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -26,7 +26,7 @@ import { z } from "zod"
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { Doc } from "../../convex/_generated/dataModel";
+import { Doc } from "../../../../convex/_generated/dataModel";
 
 const formSchema = z.object({
     title: z.string().min(1).max(200),
@@ -57,7 +57,6 @@ export function UploadBtn() {
     const { toast } = useToast()
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values)
         if (!values.files || !orgId) return
 
         const postUrl = await generateUploadUrl()
