@@ -66,7 +66,8 @@ export const deleteFile = mutation({
             throw new ConvexError("You don't have access")
         }
 
-        const isAdmin = access.user.orgIds.find(orgId => orgId.orgId === access.file.orgId)?.role == 'admin'
+        const isAdmin = access.user.orgIds.find(orgId => orgId.orgId === access.file.orgId)?.role == 'admin' 
+            || access.file.userId === access.user._id
 
         if (!isAdmin) {
             throw new ConvexError("You don't have admin access")
@@ -110,6 +111,7 @@ export const restoreFile = mutation({
         }
 
         const isAdmin = access.user.orgIds.find(orgId => orgId.orgId === access.file.orgId)?.role == 'admin'
+        || access.file.userId === access.user._id
 
         if (!isAdmin) {
             throw new ConvexError("You don't have admin access")
@@ -204,6 +206,7 @@ export const getFiles = query({
         query: v.optional(v.string()),
         favorites: v.optional(v.boolean()),
         trash: v.optional(v.boolean()),
+        type: v.optional(fileTypes)
     },
     async handler(ctx, args) {
         const access = await hasAccessToOrg(ctx, args.orgId)
@@ -239,6 +242,12 @@ export const getFiles = query({
         } else {
             files = files.filter(
                 file => !file.toDelete
+            )
+        }
+
+        if (args.type) {
+            files = files.filter(
+                file => file.type === args.type
             )
         }
 

@@ -40,6 +40,7 @@ export function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavori
     const deleteFile = useMutation(api.files.deleteFile)
     const restoreFile = useMutation(api.files.restoreFile)
     const toggleFavorites = useMutation(api.files.toggleFavorite)
+    const me = useQuery(api.users.getMe)
     const { toast } = useToast()
 
 
@@ -108,7 +109,14 @@ export function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavori
                     Download
                 </DropdownMenuItem>
                 <Protect
-                    role="org:admin"
+                    condition={
+                        (check) => {
+                            return check({
+                                role: 'org:admin'
+                            }) || file.userId === me?._id
+                        }
+                    }
+                    // role="org:admin"
                 >
                     <DropdownMenuSeparator />
                     {

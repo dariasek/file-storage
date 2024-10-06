@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadBtn } from "../files/upload-btn";
 import { DataTable } from "./file-table";
 import { columns } from "./columns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Doc } from "../../../../convex/_generated/dataModel";
 
 
 export default function FileBrowser({
@@ -25,12 +27,13 @@ export default function FileBrowser({
   const organization = useOrganization()
   const user = useUser()
   const [query, setQuery] = useState('')
+  const [type, setType] = useState<Doc<'files'>['type'] | 'all'>('all')
 
   const orgId = user.isLoaded && organization.isLoaded && (organization.organization?.id ?? user.user?.id)
 
   const favoriteFiles = useQuery(api.files.getFavorites, orgId ? { orgId } : 'skip')
 
-  let files = useQuery(api.files.getFiles, orgId ? { orgId, query, favorites, trash } : 'skip')
+  let files = useQuery(api.files.getFiles, orgId ? { orgId, type: type === 'all' ? undefined : type, query, favorites, trash } : 'skip')
   // const files = useQuery(api.files.getFiles, 'skip')
   if (files) {
     files = files.map(file => {
@@ -52,7 +55,7 @@ export default function FileBrowser({
           : ''
       }
       {
-        files && files.length > 0 || query !== ''
+        files && files.length > 0 || query !== '' || type !== 'all'
           ? <>
             <div className="flex justify-between items-center">
               <h1 className="text-4xl font-bold">{title}</h1>
@@ -60,18 +63,32 @@ export default function FileBrowser({
               <UploadBtn />
             </div>
             <Tabs defaultValue="grid">
-              <TabsList className="mt-4">
-                <TabsTrigger value="grid" className="gap-2">
-                  <GridIcon />
-                  Grid
-                </TabsTrigger>
-                <TabsTrigger value="table" className="gap-2">
-                  <Rows />
-                  Table
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex justify-between mt-4">
+                <TabsList>
+                  <TabsTrigger value="grid" className="gap-2">
+                    <GridIcon />
+                    Grid
+                  </TabsTrigger>
+                  <TabsTrigger value="table" className="gap-2">
+                    <Rows />
+                    Table
+                  </TabsTrigger>
+                </TabsList>
+                <Select value={type} onValueChange={v => setType(v as Doc<'files'>['type'] | 'all')}>
+                  <SelectTrigger className="w-[180px]" >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="image">Image</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
+                    <SelectItem value="csv">CSV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <TabsContent value="grid">
-                <div className="grid grid-cols-3 gap-4 mt-8">
+                <div className="grid grid-cols-3 gap-4">
                   {
                     files?.map(file => {
                       return <FileCard key={file._id} file={file} />
