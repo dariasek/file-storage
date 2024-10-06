@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values"
-import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server"
+import { internalMutation, mutation, MutationCtx, query, QueryCtx } from "./_generated/server"
 import { getUser } from "./users"
 import { fileTypes } from "./schema"
 import { Id } from "./_generated/dataModel"
@@ -49,7 +49,8 @@ export const createFile = mutation({
             name: args.name,
             orgId: args.orgId,
             fileId: args.fileId,
-            type: args.type
+            type: args.type,
+            userId: hasAccess.user._id,
         })
     }
 })
@@ -71,8 +72,52 @@ export const deleteFile = mutation({
             throw new ConvexError("You don't have admin access")
         }
 
-        await ctx.db.delete(args.fileId)
-        await ctx.storage.delete(access.file.fileId);
+        await ctx.db.patch(args.fileId, {
+            toDelete: true
+        })
+        // await ctx.db.delete(args.fileId)
+        // await ctx.storage.delete(access.file.fileId);
+    }
+})
+
+export const deleteMarkedFiles = internalMutation({
+    args: {},
+    async handler(ctx) {
+        const files = await ctx.db
+            .query('files')
+            .withIndex('by_toDelete', q=> q.eq('toDelete', true))
+            .collect()
+
+        await Promise.all(files.map(
+            async (file) => {
+                await ctx.storage.delete(file.fileId);                
+                await ctx.db.delete(file._id)
+            }
+        ))
+    }
+})
+
+
+export const restoreFile = mutation({
+    args: {
+        fileId: v.id('files')
+    },
+    async handler(ctx, args) {
+        const access = await hasAccessToFile(ctx, args.fileId)
+
+        if (!access) {
+            throw new ConvexError("You don't have access")
+        }
+
+        const isAdmin = access.user.orgIds.find(orgId => orgId.orgId === access.file.orgId)?.role == 'admin'
+
+        if (!isAdmin) {
+            throw new ConvexError("You don't have admin access")
+        }
+
+        await ctx.db.patch(args.fileId, {
+            toDelete: false
+        })
     }
 })
 
@@ -157,7 +202,8 @@ export const getFiles = query({
     args: {
         orgId: v.string(),
         query: v.optional(v.string()),
-        favorites: v.optional(v.boolean())
+        favorites: v.optional(v.boolean()),
+        trash: v.optional(v.boolean()),
     },
     async handler(ctx, args) {
         const access = await hasAccessToOrg(ctx, args.orgId)
@@ -184,7 +230,15 @@ export const getFiles = query({
                 .collect()
 
             files = files.filter(
-                file => favorites.some(fav => fav.fileId == file._id)
+                file => favorites.some(fav => fav.fileId == file._id && !file.toDelete)
+            )
+        } else if (args.trash && access.user) {
+            files = files.filter(
+                file => file.toDelete
+            )
+        } else {
+            files = files.filter(
+                file => !file.toDelete
             )
         }
 

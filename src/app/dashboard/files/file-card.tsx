@@ -24,18 +24,21 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@/components/ui/alert-dialog"
-import { GanttChartIcon, ImageIcon, MoreVertical, StarIcon, TextIcon, TrashIcon } from "lucide-react"
+import { DownloadIcon, GanttChartIcon, ImageIcon, MoreVertical, StarIcon, TextIcon, TrashIcon, Undo } from "lucide-react"
 import { ReactNode, useState } from "react"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { Protect } from "@clerk/nextjs"
+import { Avatar, AvatarImage } from "@/components/ui/avatar"
+import { formatRelative } from 'date-fns'
 
 
-function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: boolean}) {
+function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavorite?: boolean}) {
     const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
     const deleteFile = useMutation(api.files.deleteFile)
+    const restoreFile = useMutation(api.files.restoreFile)
     const toggleFavorites = useMutation(api.files.toggleFavorite)
     const { toast } = useToast()
 
@@ -46,8 +49,7 @@ function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: b
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account
-                        and remove your data from our servers.
+                        This action will mark file for deletion.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -57,7 +59,7 @@ function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: b
                             try {
                                 await deleteFile({ fileId: file._id })
                                 toast({
-                                    title: 'File Deleted',
+                                    title: 'File marked to be deleted',
                                     variant: 'default',
                                     // description: ''
                                 })
@@ -96,17 +98,36 @@ function FileCardActions({file, isFavorite}: {file: Doc<'files'>, isFavorite?: b
                     <StarIcon className={`w-4 h-4 ${isFavorite ? 'text-yellow-400' : ''}`} />
                     Favorite
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                 className="flex gap-1 items-center cursor-pointer"
+                 onClick={() => {
+                    return file.url && window.open(file.url, '_blank')
+                }}
+                >
+                    <DownloadIcon className="w-4 h-4" />
+                    Download
+                </DropdownMenuItem>
                 <Protect
                     role="org:admin"
                 >
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        className="flex gap-1 items-center text-red-600 cursor-pointer"
-                        onClick={() => { setDeleteConfirmOpen(true) }}
-                    >
-                        <TrashIcon className="w-4 h-4" />
-                        Delete
-                    </DropdownMenuItem>
+                    {
+                        file.toDelete
+                            ? <DropdownMenuItem
+                                className="flex gap-1 items-center text-green-400 cursor-pointer"
+                                onClick={() => { restoreFile({fileId: file._id}) }}
+                            >
+                                <Undo className="w-4 h-4" />
+                                Restore
+                            </DropdownMenuItem>
+                            : <DropdownMenuItem
+                                className="flex gap-1 items-center text-red-600 cursor-pointer"
+                                onClick={() => { setDeleteConfirmOpen(true) }}
+                            >
+                                <TrashIcon className="w-4 h-4" />
+                                Delete
+                            </DropdownMenuItem>
+                    }
                 </Protect>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -121,6 +142,9 @@ export function FileCard({ file, isFavorite }: { file: FileWithUrl, isFavorite?:
         'csv': <GanttChartIcon />,
         'pdf': <TextIcon />
     } as Record<Doc<'files'>['type'], ReactNode>
+
+    const userProfile = useQuery(api.users.getUserProfile, { userId: file.userId })
+
 
     return <Card>
         <CardHeader className="relative">
@@ -140,11 +164,17 @@ export function FileCard({ file, isFavorite }: { file: FileWithUrl, isFavorite?:
                     : ''
             }
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex justify-between">
             {/* TODO: Add real download */}
-            <Button onClick={() => {
-                return file.url && window.open(file.url, '_blank')
-            }}>Download</Button>
+            <div className="flex text-xs text-gray-400 gap-2 items-center">
+                <Avatar className="w-8 h-8">
+                    <AvatarImage src={userProfile?.image} />
+                </Avatar>
+                {userProfile?.name}
+            </div>
+            <div className="text-xs text-gray-400">
+                Uploaded on {formatRelative(new Date(file._creationTime), new Date())}
+            </div>
         </CardFooter>
     </Card>
 }
