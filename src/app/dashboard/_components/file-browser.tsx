@@ -2,12 +2,15 @@
 import { useOrganization, useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { GridIcon, Loader2, Rows } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { SearchBar } from "@/app/dashboard/files/search-bar";
 import { FileCard } from "@/app/dashboard/files/file-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadBtn } from "../files/upload-btn";
+import { DataTable } from "./file-table";
+import { columns } from "./columns";
 
 
 export default function FileBrowser({
@@ -27,8 +30,16 @@ export default function FileBrowser({
 
   const favoriteFiles = useQuery(api.files.getFavorites, orgId ? { orgId } : 'skip')
 
-  const files = useQuery(api.files.getFiles, orgId ? { orgId, query, favorites, trash } : 'skip')
+  let files = useQuery(api.files.getFiles, orgId ? { orgId, query, favorites, trash } : 'skip')
   // const files = useQuery(api.files.getFiles, 'skip')
+  if (files) {
+    files = files.map(file => {
+      return {
+        ...file,
+        isFavorite: favoriteFiles?.some(fav => fav.fileId == file._id)
+      }
+    })
+  }
 
   return (
     <div>
@@ -48,13 +59,30 @@ export default function FileBrowser({
               <SearchBar setQuery={setQuery} />
               <UploadBtn />
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-8">
-              {
-                files?.map(file => {
-                  return <FileCard key={file._id} file={file} isFavorite={favoriteFiles?.some(fav => fav.fileId == file._id)} />
-                })
-              }
-            </div>
+            <Tabs defaultValue="grid">
+              <TabsList className="mt-4">
+                <TabsTrigger value="grid" className="gap-2">
+                  <GridIcon />
+                  Grid
+                </TabsTrigger>
+                <TabsTrigger value="table" className="gap-2">
+                  <Rows />
+                  Table
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="grid">
+                <div className="grid grid-cols-3 gap-4 mt-8">
+                  {
+                    files?.map(file => {
+                      return <FileCard key={file._id} file={file} />
+                    })
+                  }
+                </div>
+              </TabsContent>
+              <TabsContent value="table">
+                <DataTable columns={columns} data={files ?? []} />
+              </TabsContent>
+            </Tabs>
           </>
           : files ? <div className="flex flex-col gap-8 items-center justify-center mt-20 ">
             <Image

@@ -35,7 +35,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import { formatRelative } from 'date-fns'
 
 
-function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavorite?: boolean}) {
+export function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavorite?: boolean}) {
     const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
     const deleteFile = useMutation(api.files.deleteFile)
     const restoreFile = useMutation(api.files.restoreFile)
@@ -134,9 +134,9 @@ function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavorite?: bo
     </>
 }
 
-type FileWithUrl = Doc<"files"> & { url: string | null }
+export type FileWithUrl = Doc<"files"> & { url: string | null , isFavorite?: boolean}
 
-export function FileCard({ file, isFavorite }: { file: FileWithUrl, isFavorite?: boolean }) {
+export function FileCard({ file }: { file: FileWithUrl }) {
     const typeIcons = {
         'image': <ImageIcon />,
         'csv': <GanttChartIcon />,
@@ -153,7 +153,7 @@ export function FileCard({ file, isFavorite }: { file: FileWithUrl, isFavorite?:
                 {file.name}
             </CardTitle>
             <div className="absolute top-2 right-1">
-                <FileCardActions file={file} isFavorite={isFavorite} />
+                <FileCardActions file={file} isFavorite={file.isFavorite} />
             </div>
         </CardHeader>
         <CardContent className="h-[200px] flex justify-center">
