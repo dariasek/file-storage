@@ -14,6 +14,7 @@ export default function DashboardLayout({
         <div className="w-full">
             {children}
         </div>
+        {/* <Footer /> */}
       </div>
 
     </main>

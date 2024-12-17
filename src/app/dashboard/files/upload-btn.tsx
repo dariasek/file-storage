@@ -93,7 +93,7 @@ export function UploadBtn() {
                 title: 'File Uploaded',
                 description: 'Meow meow meow'
             })
-        } catch (err) {
+        } catch {
             toast({
                 variant: 'destructive',
                 title: 'Smth went wrond',

@@ -6,7 +6,6 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { Doc } from "../../../../convex/_generated/dataModel"
-import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -88,7 +87,7 @@ export function FileCardActions({file, isFavorite}: {file: FileWithUrl, isFavori
                         await toggleFavorites({
                             fileId: file._id
                         })
-                    } catch (e) {
+                    } catch {
                         toast({
                             title: 'Something went wrong',
                             variant: 'destructive',
